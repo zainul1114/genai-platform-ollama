@@ -107,7 +107,7 @@ services:
   # OBSERVABILITY
   # ==========================================
   otel-collector:
-    image: otel/opentelemetry-collector:latest
+    image: otel/opentelemetry-collector-contrib:latest
     restart: unless-stopped
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
@@ -122,6 +122,10 @@ services:
       - "16686:16686"
     environment:
       - COLLECTOR_OTLP_ENABLED=true
+      # Connects the Jaeger Monitor tab to your local Prometheus container
+      - PROMETHEUS_SERVER_URL=http://prometheus:9090
+      # Tells Jaeger to expect metrics formatted by the OpenTelemetry spanmetrics connector
+      - PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR=true
     networks:
       - ai-net
 

@@ -33,6 +33,8 @@ This repository contains the configuration and infrastructure-as-code for a full
 *   **Jaeger:** Receives distributed traces from Otel, allowing us to visualize the exact latency and lifecycle of every LLM request.
 *   **Prometheus & Grafana:** Prometheus scrapes time-series metrics from the platform, which are then visualized in Grafana dashboards for real-time infrastructure monitoring.
 
+![Jaeger Usage](images/Jaeger_UI.png)
+
 ---
 
 ```mermaid

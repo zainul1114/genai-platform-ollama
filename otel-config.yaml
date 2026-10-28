@@ -7,21 +7,33 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
-  # Batches spans before sending to Jaeger to reduce network overhead
   batch:
     send_batch_size: 1000
     timeout: 1s
 
+connectors:
+  spanmetrics:
+    histogram:
+      explicit:
+        buckets: [2ms, 6ms, 10ms, 100ms, 250ms, 500ms, 1000ms, 5000ms, 10000ms]
+
 exporters:
-  # Route the traces to the Jaeger container
   otlp/jaeger:
     endpoint: jaeger:4317
     tls:
       insecure: true
+  # Define the Prometheus exporter endpoint
+  prometheus:
+    endpoint: "0.0.0.0:8889"
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/jaeger]
+      exporters: [otlp/jaeger, spanmetrics]
+    metrics:
+      # Receive metrics from the spanmetrics connector and export them
+      receivers: [spanmetrics]
+      processors: [batch]
+      exporters: [prometheus]

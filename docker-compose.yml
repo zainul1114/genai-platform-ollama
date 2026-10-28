@@ -1,0 +1,162 @@
+services:
+  # ==========================================
+  # STATEFUL BACKENDS
+  # ==========================================
+  postgres:
+    image: postgres:17.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: supersecretpassword
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql
+    networks:
+      - ai-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - ai-net
+
+  # ==========================================
+  # LLM INFRASTRUCTURE
+  # ==========================================
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - ai-net
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: "postgresql://admin:supersecretpassword@postgres:5432/litellm"
+      LITELLM_MASTER_KEY: "sk-litellm-master-key"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+    command: [ "--config", "/app/config.yaml", "--detailed_debug" ]
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+    depends_on:
+      - postgres
+      - ollama
+    networks:
+      - ai-net
+
+  # ==========================================
+  # PLATFORM TOOLS
+  # ==========================================
+  gitea:
+    image: gitea/gitea:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=postgres:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=admin
+      - GITEA__database__PASSWD=supersecretpassword
+    volumes:
+      - gitea_data:/data
+    networks:
+      - ai-net
+
+  jupyterhub:
+    image: jupyterhub/jupyterhub:latest
+    restart: unless-stopped
+    ports:
+      - "8888:8000" 
+    volumes:
+      - jupyter_data:/srv/jupyterhub
+    networks:
+      - ai-net
+
+  streamlit-bot:
+    build: ./streamlit
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - LITELLM_API_BASE=http://litellm:4000
+      - QDRANT_URL=http://qdrant:6333
+      - STREAMLIT_SERVER_ENABLE_CORS=false
+      - STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
+    volumes:
+      - ./streamlit/app.py:/app/app.py
+    networks:
+      - ai-net
+
+  # ==========================================
+  # OBSERVABILITY
+  # ==========================================
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-config.yaml:/etc/otel-collector-config.yaml
+    networks:
+      - ai-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    restart: unless-stopped
+    ports:
+      - "16686:16686"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - ai-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prom_data:/prometheus
+    networks:
+      - ai-net
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "3001:3000" 
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - ai-net
+
+networks:
+  ai-net:
+    driver: bridge
+
+volumes:
+  pg_data:
+  qdrant_data:
+  ollama_data:
+  gitea_data:
+  jupyter_data:
+  prom_data:
+  grafana_data:

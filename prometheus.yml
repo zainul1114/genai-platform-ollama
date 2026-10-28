@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ----------------------------------------------------
+  # LLM Gateway Metrics (Tokens, Latency, Cache Hits)
+  # ----------------------------------------------------
+  - job_name: 'litellm'
+    static_configs:
+      - targets: ['litellm:4000']
+    metrics_path: '/metrics'
+    # Optional: If you enabled authentication on the metrics endpoint in LiteLLM
+    # bearer_token: "sk-litellm-master-key"
+
+  # ----------------------------------------------------
+  # Inference Engine Metrics (GPU/CPU util, KV Cache usage, Queue depth)
+  # ----------------------------------------------------
+  - job_name: 'vllm'
+    static_configs:
+      - targets: ['vllm:8000']
+
+  # ----------------------------------------------------
+  # Vector DB Metrics (Search latency, index health)
+  # ----------------------------------------------------
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:6333']
+
+  # ----------------------------------------------------
+  # Version Control Metrics (Git operations, hooks)
+  # ----------------------------------------------------
+  - job_name: 'gitea'
+    static_configs:
+      - targets: ['gitea:3000']
+    metrics_path: '/metrics'

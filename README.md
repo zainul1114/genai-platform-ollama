@@ -7,12 +7,19 @@ This repository contains the configuration and infrastructure-as-code for a full
 ### 1. Frontend & Application Layer
 *   **Streamlit:** The interactive web-based chat interface. It acts as the user-facing client, accepting prompts and rendering the streaming responses[cite: 6]. It is configured to communicate with the AI Gateway using standard OpenAI-compatible API calls.
 
+![StreamLit CHAT APP](images/StreamLit.png)
+
 ### 2. AI Gateway & Routing
 *   **LiteLLM:** Acts as the central orchestrator and proxy. Instead of applications talking directly to the inference engine, they route through LiteLLM. This provides:
     *   A unified OpenAI-compatible API endpoint.
     *   Centralized token tracking and usage metrics (e.g., tracking total requests and token counts)[cite: 5].
     *   Virtual key management and rate limiting.
     *   Backed by a **PostgreSQL (17.6)** database to persist user data, keys, and spend logs.
+
+![LiteLLM Dashboard](images/LiteLLM_1.png)
+
+![LiteLLM Usage](images/LiteLLM_2.png)
+
 
 ### 3. Inference Engine
 *   **Ollama:** The core local execution environment. We transitioned from vLLM to Ollama to achieve stable, high-performance inference on CPU architecture. 
